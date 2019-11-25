@@ -1,0 +1,59 @@
+#!/bin/sh
+. ../env.sh
+unset JAVA_OPTS
+export JAVA_OPTS=" -Djava.awt.headless=false "
+
+PROFILE=ha
+DATASOURCE=jpetstore
+CONNECTION_URL="jdbc:mysql://172.16.167.2:3306/jpetstore?connectTimeout=10000&amp;socketTimeout=10000"
+USER_NAME=jpetstore
+PASSWORD=jpetstore
+
+add(){
+$JBOSS_HOME/bin/jboss-cli.sh  --controller=$CONTROLLER_IP:$CONTROLLER_PORT --connect <<EOF
+if (outcome != success) of /subsystem=datasources/data-source=$DATASOURCE:read-resource
+
+/subsystem=datasources/data-source=$DATASOURCE:add(enabled=true,use-ccm=true,statistics-enabled=true, jndi-name=java:jboss/datasources/$DATASOURCE,connection-url=$CONNECTION_URL,driver-name=mysql,driver-class=com.mysql.jdbc.Driver,user-name=$USER_NAME,password=$PASSWORD, min-pool-size=20,max-pool-size=20,pool-prefill=true, pool-use-strict-min=true, validate-on-match=false, background-validation=true, background-validation-millis=30000, blocking-timeout-wait-millis=600000,idle-timeout-minutes=15,track-statements=nowarn, prepared-statements-cache-size=20, share-prepared-statements=true, valid-connection-checker-class-name="org.jboss.jca.adapters.jdbc.extensions.mysql.MySQLValidConnectionChecker", stale-connection-checker-class-name="org.jboss.jca.adapters.jdbc.extensions.mysql.MySQLStaleConnectionChecker", exception-sorter-class-name="org.jboss.jca.adapters.jdbc.extensions.mysql.MySQLExceptionSorter" )
+
+end-if
+exit
+EOF
+}
+
+remove(){
+$JBOSS_HOME/bin/jboss-cli.sh  --controller=$CONTROLLER_IP:$CONTROLLER_PORT --connect <<EOF
+if (outcome == success) of /subsystem=datasources/data-source=$DATASOURCE:read-resource 
+ /subsystem=datasources/data-source=$DATASOURCE:remove
+end-if
+exit
+EOF
+}
+
+status(){
+$JBOSS_HOME/bin/jboss-cli.sh  --controller=$CONTROLLER_IP:$CONTROLLER_PORT --connect <<EOF
+/subsystem=datasources/data-source=$DATASOURCE:read-resource
+exit
+EOF
+}
+
+# See how we were called.
+case "$1" in
+  add)
+     echo "add datasource : $DATASOURCE $CONNECTION_URL $USER_NAME $PASSWORD"
+     add
+    ;;
+  remove)
+     echo "remove datasource : $DATASOURCE $CONNECTION_URL $USER_NAME $PASSWORD"
+     remove 
+    ;;
+  status)
+     echo "is_datasource : $DATASOURCE $CONNECTION_URL $USER_NAME $PASSWORD"
+     status 
+  ;;
+  *)
+    echo $"Usage: $0 {add|remove|status}"
+    exit 2
+esac
+
+exit $?
+

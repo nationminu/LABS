@@ -1,0 +1,35 @@
+<datasource jndi-name="{{ jndi_name }}" pool-name="{{ pool_name }}" enabled="true" use-ccm="true" statistics-enabled="true">
+    <connection-url>{{ connection_url }}</connection-url> 
+    <driver-class>oracle.jdbc.OracleDriver</driver-class>
+    <driver>oracle</driver>
+    <pool>
+        <min-pool-size>{{ min_pool_size }}</min-pool-size>
+        <max-pool-size>{{ max_pool_size }}</max-pool-size>
+        <prefill>true</prefill>
+        <use-strict-min>true</use-strict-min>
+    </pool>
+    <security>
+        <user-name>{{ user_name }}</user-name>
+        <password>{{ password }}</password>
+    </security>
+    <validation>
+        <valid-connection-checker class-name="org.jboss.jca.adapters.jdbc.extensions.oracle.OracleValidConnectionChecker"/>
+        <stale-connection-checker class-name="org.jboss.jca.adapters.jdbc.extensions.oracle.OracleStaleConnectionChecker"/> 
+        <validate-on-match>false</validate-on-match>
+        <background-validation>true</background-validation>
+        <background-validation-millis>30000</background-validation-millis>
+        <exception-sorter class-name="org.jboss.jca.adapters.jdbc.extensions.oracle.OracleExceptionSorter"/>
+    </validation>
+    <timeout>
+        <!--
+        <query-timeout>100</query-timeout>
+        -->
+        <blocking-timeout-millis>60000</blocking-timeout-millis>
+        <idle-timeout-minutes>15</idle-timeout-minutes>
+    </timeout>
+    <statement>
+        <track-statements>nowarn</track-statements>
+        <prepared-statement-cache-size>100</prepared-statement-cache-size>
+        <share-prepared-statements>true</share-prepared-statements>
+    </statement>
+</datasource>

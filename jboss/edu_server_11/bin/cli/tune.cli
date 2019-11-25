@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+
+BASEDIR=$(dirname "$0")
+. ${BASEDIR}/../env.sh
+
+unset JAVA_OPTS 
+
+${JBOSS_HOME}/bin/jboss-cli.sh  --controller=${CONTROLLER_IP}:${CONTROLLER_PORT} --connect <<EOF
+batch
+## default 
+## add ajp-listner
+#/subsystem=undertow/server=default-server/ajp-listener=default:add(socket-binding=ajp, scheme=http, enabled=true)
+
+## set jvmRoute for sticky 
+/subsystem=undertow:write-attribute(name=instance-id,value="\$\{jboss.node.name\}")
+/subsystem=transactions:write-attribute(name=node-identifier,value="\$\{jboss.node.name\}")
+
+## set task-max-thread(default core * 16)
+/subsystem=io/worker=default/:write-attribute(name=task-max-threads,value=500)
+/subsystem=io/worker=default/:write-attribute(name=task-keepalive,value=60)
+
+## remove default datasource
+/subsystem=datasources/data-source=ExampleDS:remove()
+/subsystem=ee/service=default-bindings:undefine-attribute(name=datasource)
+/subsystem=datasources/jdbc-driver=h2:remove()
+
+## set the use-deployment-logging-config
+/subsystem=logging:write-attribute(name=use-deployment-logging-config,value=false)
+## disable console log
+/subsystem=logging/root-logger=ROOT:remove-handler(name=CONSOLE)
+
+## ha mode
+## dist session replication patch
+#/subsystem=infinispan/cache-container=web/distributed-cache=dist/component=locking:remove
+#/subsystem=infinispan/cache-container=web/distributed-cache=dist/component=transaction:remove
+
+## remove modcluster
+#/subsystem=modcluster:remove()
+#/extension=org.jboss.as.modcluster:remove()
+#/socket-binding-group=standard-sockets/socket-binding=modcluster:remove()
+
+## set ls config
+/subsystem=undertow/server=default-server/ajp-listener=ajp:write-attribute(name=allow-unescaped-characters-in-url,value=true)
+/subsystem=undertow/server=default-server/http-listener=default:write-attribute(name=url-charset,value=EUC-KR)
+/subsystem=undertow/server=default-server/ajp-listener=ajp:write-attribute(name=url-charset,value=EUC-KR)
+/subsystem=undertow/servlet-container=default:write-attribute(name=default-encoding,value=EUC-KR)
+
+run-batch
+exit
+EOF
