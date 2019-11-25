@@ -19,7 +19,7 @@ export PORT_OFFSET=0
 export JBOSS_USER=edu
 
 ##### Bind Address #####
-export BIND_ADDR=10.65.40.201
+export BIND_ADDR=192.168.56.101
 
 export MULTICAST_ADDR=231.0.6.1
 export MULTICAST_PORT=55200
