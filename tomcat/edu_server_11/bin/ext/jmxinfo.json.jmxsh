@@ -1,0 +1,157 @@
+#
+# Script for remotely invoking garbage collection on a set of servers.
+#
+
+set systemTime "[clock seconds]"
+set date "[clock format $systemTime -format %Y-%m-%d]" 
+set time "[clock format $systemTime -format %H:%M:%S]" 
+
+set hosts [list]
+lappend hosts {monitor:qwer1234@127.0.0.1:9999}
+
+set dbs [list]
+lappend dbs {jdbc/sample}
+lappend dbs {jdbc/testdb}
+
+set apps [list]
+lappend apps {/rocker}
+lappend apps {/manager}
+
+######################
+# MAIN FOR EACH HOST #
+######################
+foreach {host} $hosts {
+  set parts [split $host "@"]
+
+  set servers [lindex $parts 1]
+  set users [lindex $parts 0]
+
+  set server [split $servers ":"]
+  set user [split $users ":"]
+
+  set hostname [lindex $server 0]
+  set port [lindex $server 1]
+
+  set username [lindex $user 0]
+  set password [lindex $user 1]
+
+  ###############
+  # SYSTEM INFO #
+  ###############
+  puts -nonewline "\{"
+  puts -nonewline "\"hostname\"\:\"$hostname\:$port\","
+  puts -nonewline "\"date\"\:\"$date\","
+  puts -nonewline "\"time\"\:\"$time\","
+
+  # for each host...
+
+  # Connect to it.
+  jmx_connect -h $hostname -p $port -U $username -P $password
+
+  set instancename "[jmx_get -m Catalina:type=Engine jvmRoute]"
+
+  puts -nonewline "\"instance\"\:\"$instancename\","
+
+  puts -nonewline "\"threads\"\:\["
+
+  ############################
+  # EXCUTOR THREAD MONITOR ATTRIBUTE #
+  ############################
+  set thname "[jmx_get -m Catalina:type=Executor,name=tomcatThreadPool name]"
+  set thmax "[jmx_get -m Catalina:type=Executor,name=tomcatThreadPool maxThreads]"
+  set thactive "[jmx_get -m Catalina:type=Executor,name=tomcatThreadPool activeCount]"
+  set thidle "[jmx_get -m Catalina:type=Executor,name=tomcatThreadPool poolSize]"
+  set thlarge "[jmx_get -m Catalina:type=Executor,name=tomcatThreadPool largestPoolSize]"
+
+  puts -nonewline "\{"
+  puts -nonewline "\"name\"\:\"$thname\","
+  puts -nonewline "\"max\"\:\"$thmax\","
+  puts -nonewline "\"active\"\:\"$thactive\","
+  puts -nonewline "\"idle\"\:\"$thidle\","
+  puts -nonewline "\"largest\"\:\"$thlarge\""
+  puts -nonewline "\}"
+
+  ############################
+  # THREAD MONITOR ATTRIBUTE #
+  ############################
+#  set thname "[jmx_get -m Catalina:name="http-nio-9990",type=ThreadPool name]"
+#  set thmax "[jmx_get -m Catalina:name="http-nio-9990",type=ThreadPool maxThreads]"
+#  set thactive "[jmx_get -m Catalina:name="http-nio-9990",type=ThreadPool currentThreadsBusy]"
+#  set thidle "[jmx_get -m Catalina:name="http-nio-9990",type=ThreadPool currentThreadCount]"
+##  set thlarge "[jmx_get -m Catalina:name="http-nio-9990",type=ThreadPool currentThreadCount]"
+#  set thlarge "0" 
+
+#  puts -nonewline ",\{"
+#  puts -nonewline "\"name\"\:\"$thname\","
+#  puts -nonewline "\"max\"\:\"$thmax\","
+#  puts -nonewline "\"active\"\:\"$thactive\","
+#  puts -nonewline "\"idle\"\:\"$thidle\","
+#  puts -nonewline "\"largest\"\:\"$thlarge\""
+#  puts -nonewline "\}"
+
+  puts -nonewline "\],"
+
+  #############################
+  # SESSION MONITOR ATTRIBUTE #
+  #############################
+  puts -nonewline "\"sessions\"\:\["
+
+  ### iterator app context array start
+  set sscount 0
+  foreach {app} $apps {
+    set length [llength $apps]
+    incr sscount
+    
+    set ssactive "[jmx_get -m Catalina:type=Manager,host=localhost,context=$app activeSessions]"
+    set sslarge "[jmx_get -m Catalina:type=Manager,host=localhost,context=$app maxActive]"
+
+    puts -nonewline "\{"
+    puts -nonewline "\"name\"\:\"$app\","
+    puts -nonewline "\"active\"\:\"$ssactive\","
+    puts -nonewline "\"largest\"\:\"$sslarge\""
+    puts -nonewline "\}"
+  
+    if {$sscount < $length} { puts -nonewline "\," }
+  }
+  ### iterator app context array end 
+
+  puts -nonewline "\],"
+
+  ###############################
+  # DATASOURCE MONITOR ATTRIBUTE #
+  ################################
+  puts -nonewline "\"datasources\"\:\["
+
+  ### iterator datasource array start
+  set dscount 0 
+  foreach {db} $dbs {
+    set length [llength $dbs]
+    incr dscount
+
+    #puts "$db connection pool "
+    set dbname "$db"
+    set dbmax "[jmx_get -m Catalina:name="$db",type=DataSource,class=javax.sql.DataSource maxTotal]"
+    set dbactive "[jmx_get -m Catalina:name="$db",type=DataSource,class=javax.sql.DataSource numActive]"
+    set dbidle "[jmx_get -m Catalina:name="$db",type=DataSource,class=javax.sql.DataSource numIdle]"
+
+    puts -nonewline "\{"
+#    puts -nonewline "\"sequence\"\:\"$dscount\","
+    puts -nonewline "\"name\"\:\"$dbname\","
+    puts -nonewline "\"max\"\:\"$dbmax\","
+    puts -nonewline "\"active\"\:\"$dbactive\","
+    puts -nonewline "\"idle\"\:\"$dbidle\""
+    puts -nonewline "\}"
+    
+    if {$dscount < $length} { puts -nonewline "\," }
+  }
+  ### iterator datasource array end 
+
+  puts -nonewline "\]"
+  puts -nonewline "\}"
+
+  puts ""
+
+  # Close this connection
+  jmx_close
+}
+

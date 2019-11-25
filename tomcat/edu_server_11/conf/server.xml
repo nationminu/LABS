@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<Server port="8005" shutdown="SHUTDOWN">
+  <Listener className="org.apache.catalina.startup.VersionLoggerListener" />
+  <!-- Security listener. Documentation at /docs/config/listeners.html
+  <Listener className="org.apache.catalina.security.SecurityListener" />
+  -->
+  <!--APR library loader. Documentation at /docs/apr.html -->
+  <Listener className="org.apache.catalina.core.AprLifecycleListener" SSLEngine="on" />
+  <!-- Prevent memory leaks due to use of particular java/javax APIs-->
+  <Listener className="org.apache.catalina.core.JreMemoryLeakPreventionListener" />
+  <Listener className="org.apache.catalina.mbeans.GlobalResourcesLifecycleListener" />
+  <Listener className="org.apache.catalina.core.ThreadLocalLeakPreventionListener" />
+
+<!-- ################################################################## -->
+<!-- ## Section 1. Global Nameimg Resource Configuration -->
+<!-- ################################################################## -->
+
+  <GlobalNamingResources>
+    <Resource name="UserDatabase" auth="Container"
+              type="org.apache.catalina.UserDatabase"
+              description="User database that can be updated and saved"
+              factory="org.apache.catalina.users.MemoryUserDatabaseFactory"
+              pathname="conf/tomcat-users.xml" />
+
+     <Resource name="jdbc/eduDS" auth="Container"
+               type="javax.sql.DataSource" 
+               driverClassName="com.mysql.jdbc.Driver"
+               url="jdbc:mysql://192.168.56.101:3306/edu?useUnicode=true&amp;characterEncoding=utf8"
+               username="edu" password="edu"
+               maxTotal="10"
+               maxIdle="10"
+               minIdle="10"
+               maxWaitMillis="30000"
+               validationQuery="SELECT 1"
+               testWhileIdle="true"
+               timeBetweenEvictionRunsMillis="10000"
+     /> 
+  </GlobalNamingResources>
+
+<!-- ################################################################## -->
+<!-- ## Section 2. Service Configuration -->
+<!-- ################################################################## -->
+
+  <Service name="Catalina">
+
+     <Executor name="tomcatThreadPool" namePrefix="catalina-exec-"
+        maxThreads="200" minSpareThreads="25"/>
+
+     <Connector executor="tomcatThreadPool"
+               port="${http.bind.port}"
+               protocol="HTTP/1.1"
+               connectionTimeout="20000"
+               redirectPort="${https.bind.port}"
+               URIEncoding="${server.encoding}"
+               useBodyEncodingForURI="true"
+               maxPostSize="-1"
+               />
+
+    <Connector executor="tomcatThreadPool"
+               port="${ajp.bind.port}"
+               protocol="AJP/1.3"
+               connectionTimeout="600000"
+               redirectPort="${https.bind.port}"
+               URIEncoding="${server.encoding}"
+               useBodyEncodingForURI="true"
+               maxPostSize="-1"
+               />
+
+    <Connector port="${management.bind.port}"
+               protocol="HTTP/1.1"
+               connectionTimeout="5000"
+               /> 
+
+<!-- ################################################################## -->
+<!-- ## Section 3. Engine Configuration                                -->
+<!-- ################################################################## -->
+
+    <Engine name="Catalina" defaultHost="localhost" jvmRoute="${server.name}"> 
+
+        <Cluster className="org.apache.catalina.ha.tcp.SimpleTcpCluster"
+                 channelSendOptions="8">
+
+          <Manager className="org.apache.catalina.ha.session.DeltaManager"
+                   expireSessionsOnShutdown="false"
+                   notifyListenersOnReplication="true"/>
+
+          <Channel className="org.apache.catalina.tribes.group.GroupChannel">
+            <Membership className="org.apache.catalina.tribes.membership.McastService"
+                        bind="192.168.56.101"
+                        address="231.0.6.1"
+                        port="45564"
+                        frequency="500"
+                        dropTime="3000"/>
+            <Receiver className="org.apache.catalina.tribes.transport.nio.NioReceiver"
+                      address="192.168.56.101"
+                      port="4000"
+                      autoBind="100"
+                      selectorTimeout="5000"
+                      maxThreads="6"/>
+
+
+            <Sender className="org.apache.catalina.tribes.transport.ReplicationTransmitter">
+              <Transport className="org.apache.catalina.tribes.transport.nio.PooledParallelSender"/>
+            </Sender>
+            <Interceptor className="org.apache.catalina.tribes.group.interceptors.TcpFailureDetector"/>
+            <Interceptor className="org.apache.catalina.tribes.group.interceptors.MessageDispatchInterceptor"/>
+            <Interceptor className="org.apache.catalina.tribes.group.interceptors.ThroughputInterceptor"/>
+          </Channel>
+
+          <Valve className="org.apache.catalina.ha.tcp.ReplicationValve"
+                 filter=""/>
+          <Valve className="org.apache.catalina.ha.session.JvmRouteBinderValve"/>
+
+          <Deployer className="org.apache.catalina.ha.deploy.FarmWarDeployer"
+                    tempDir="/tmp/war-temp/"
+                    deployDir="/tmp/war-deploy/"
+                    watchDir="/tmp/war-listen/"
+                    watchEnabled="false"/>
+
+          <ClusterListener className="org.apache.catalina.ha.session.ClusterSessionListener"/>
+        </Cluster>
+
+      <Realm className="org.apache.catalina.realm.LockOutRealm">
+        <Realm className="org.apache.catalina.realm.UserDatabaseRealm"
+               resourceName="UserDatabase"/>
+      </Realm>
+
+      <Host name="localhost"  appBase="webapps"
+            unpackWARs="true" autoDeploy="true">
+
+        <Context path="" docBase="/edu/webapp/example.war">
+               <ResourceLink global="jdbc/eduDS" name="jdbc/eduDS"
+                               type="javax.sql.DataSource" />
+        </Context>
+
+        <Valve className="org.apache.catalina.valves.AccessLogValve" directory="${catalina.base.log}"
+               prefix="${server.name}_access" suffix=".log"
+               pattern="%h %l %u %t &quot;%r&quot; %s %b" />
+
+        <Valve className="org.apache.catalina.valves.StuckThreadDetectionValve"
+               threshold="30" />  
+
+      </Host>
+    </Engine>
+  </Service>
+</Server>

@@ -1,0 +1,25 @@
+#
+# Script for remotely invoking garbage collection on a set of servers.
+#
+
+set hosts [list]
+lappend hosts {192.168.56.101:9999}
+#lappend hosts {some.other.host.com:####}
+# ...add as many as you want...
+
+foreach {host} $hosts {
+  set parts [split $host ":"]
+  set hostname [lindex $parts 0]
+  set port [lindex $parts 1]
+
+  # for each host...
+
+  # Connect to it.
+  jmx_connect -h $hostname -p $port -U control -P qwer1234
+
+  # Invoke the garbage collector.
+  jmx_invoke -n -m java.lang:type=Memory gc
+
+  # Close this connection
+  jmx_close
+}
