@@ -1,4 +1,5 @@
 # LABS
+<code><pre>
 
 - 사용자 추가 -----------------
 groupadd -g 1001 edu 
@@ -254,4 +255,5 @@ vi module.xml
 
 /subsystem=datasources/data-source=eduDS:test-connection-in-pool
 
+</code></pre>
 
