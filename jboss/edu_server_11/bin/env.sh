@@ -45,10 +45,10 @@ export JAVA_OPTS="-server"
 JAVA_OPTS="${JAVA_OPTS} -D[SERVER_NAME=${SERVER_NAME}]"
 
 # JVM Options : Memory 
-export JAVA_OPTS="${JAVA_OPTS} -Xms2048m"
-export JAVA_OPTS="${JAVA_OPTS} -Xmx2048m"
-export JAVA_OPTS="${JAVA_OPTS} -XX:MetaspaceSize=512m" 
-export JAVA_OPTS="${JAVA_OPTS} -XX:MaxMetaspaceSize=512m"
+export JAVA_OPTS="${JAVA_OPTS} -Xms1024m"
+export JAVA_OPTS="${JAVA_OPTS} -Xmx1024m"
+export JAVA_OPTS="${JAVA_OPTS} -XX:MetaspaceSize=256m" 
+export JAVA_OPTS="${JAVA_OPTS} -XX:MaxMetaspaceSize=256m"
 
 export JAVA_OPTS="${JAVA_OPTS} -verbose:gc"
 export JAVA_OPTS="${JAVA_OPTS} -XX:+PrintGCTimeStamps"
