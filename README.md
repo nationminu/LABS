@@ -1,84 +1,119 @@
 # APACHE TOMCAT LABS
 
+## LAB 환경 설정 예제 배포
+<code><pre>
+yum install -y git
+git clone https://github.com/nationminu/LABS /home/share/tomcat-labs
+</pre></code>
+
 ## 사용자 추가 
-<code>
-<pre>
+<code><pre>
 groupadd -g 1001 edu 
 useradd -u 1001 -g 1001 -d /edu edu
 passwd edu
-</pre>
-</code>
+</pre></code>
 
 ## ulimit 설정 
+<code><pre>
 vi /etc/security/limits.conf
 edu              soft     nproc           65536
 edu              hard     nproc           65536
 edu              soft     nofile          65536
 edu              hard     nofile          65536
+</pre></code>
 
-# hosts 설정 ----------------- 
-<code>
+## hosts 설정 
+<code><pre>
 vi /etc/hosts
-192.168.56.101 wasts1 edu.example.com poc.example.com
+192.168.56.101 wasts1 edu.example.com
 192.168.56.102 wasts2 db.example.com 
-</code>
+</pre></code>
 
-# firewalld 비활성 -----------------
+## firewalld 비활성
+<code><pre>
 systemctl stop firewalld
 systemctl disable firewalld
+</pre></code>
 
-# openjdk 설치 -----------------
+##  openjdk 설치
+<code><pre>
 yum install -y unzip java-1.8.0-openjdk java-1.8.0-openjdk-devel
+</pre></code>
 
-# profile 설정 ----------------# 
-su # edu
+## profile 설정
+<code><pre>
+su - edu
 vi ~/.bashrc
 
 JAVA_HOME=/usr/lib/jvm/java-1.8.0
 PATH=$JAVA_HOME/bin:$PATH
 export JAVA_HOME PATH
+</pre></code>
 
-# jboss EAP 설치 ----------------# 
-mkdir -p /edu/jboss/engine/
-cp /home/share/LABS/jboss-eap-7.2.0.zip /edu/jboss/engine/
-cd /edu/jboss/engine/
-unzip /edu/jboss/engine/jboss-eap-7.2.0.zip
-chown -R edu:edu /edu/jboss
+## Apache Tomcat 설치 
+<code><pre>
+mkdir -p /edu/tomcat/engine/
+cd /edu/tomcat/engine/
+wget http://apache.mirror.cdnetworks.com/tomcat/tomcat-9/v9.0.29/bin/apache-tomcat-9.0.29.tar.gz
+tar -zxvf apache-tomcat-9.0.29.tar.gz
+rm -f /edu/tomcat/engine/apache-tomcat-9.0.29.tar.gz
 
-# 멀티인스턴스 설정 ----------------# 
-mkdir -p /edu/jboss/domains/
-cp -r /edu/jboss/engine/jboss-eap-7.2/standalone /edu/jboss/domains/edu_server_11
-cd /edu/jboss/domains/edu_server_11
-rm -rf /edu/jboss/domains/edu_server_11/data
-rm -rf /edu/jboss/domains/edu_server_11/log
-rm -rf /edu/jboss/domains/edu_server_11/tmp
+cd /edu/tomcat/engine/apache-tomcat-9.0.29/bin
+./startup.sh
 
-# 관리 스크립트 설정 ----------------# 
-cp /home/share/LABS/script.tar.gz /edu/jboss/domains/edu_server_11
-cd /edu/jboss/domains/edu_server_11
-tar -zxvf script.tar.gz
-rm -f script.tar.gz
-chown -R edu:edu /edu/jboss /log/jboss
+tail -f /edu/tomcat/engine/apache-tomcat-9.0.29/logs/catalina.2019-11-28.log
+</pre></code>
+
+## 멀티인스턴스 설정
+<code><pre>
+mkdir -p /edu/tomcat/domains
+mkdir -p /log/tomcat
+
+cp –r /edu/tomcat/engine/apache-tomcat-9.0.29 /edu/tomcat/domains/edu_server_11
+cd /edu/tomcat/domains/edu_server_11
+
+rm -f /edu/tomcat/domains/edu_server_11/*
+rm -rf logs webapps lib work bin include
+
+chown -R edu.edu /edu/tomcat
+chown -R edu.edu /log/tomcat
+</pre></code>
+
+## 멀티인스턴스 스크립트/예제 설정 복사
+<code><pre>
+cp -r /home/share/tomcat-labs/tomcat/edu_server_11/bin /edu/apache/domains/edu_server_11  
+cp -r /home/share/tomcat-labs/tomcat/edu_server_11/webapps /edu/apache/domains/edu_server_11/
+cp /home/share/tomcat-labs/tomcat/default/* /edu/apache/domains/edu_server_11/conf/
+
+chmod 600 /edu/apache/domains/edu_server_11/conf/*
+</pre></code> 
 
 # 관리 스크립트 수정 ----------------# 
-##### JBOSS Directory Setup #####
-export JBOSS_HOME=/edu/jboss/engine/jboss-eap-7.2
-export DOMAIN_BASE=/edu/jboss/domains
+<code><pre>
+#!/usr/bin/env bash
+# env.sh - start a new shell with instance variables set
+
+DATE=`date +%Y%m%d%H%M%S`
+
+export SERVER_USER=edu
 export SERVER_NAME=edu_server_11
-export JBOSS_LOG_DIR=/log/jboss/${SERVER_NAME}
 
-##### Configration File #####
-export CONFIG_FILE=standalone-ha.xml
+## set base env
+export SERVER_HOME=/edu/tomcat
+export CATALINA_HOME=${SERVER_HOME}/engine/apache-tomcat-9.0.29
+export CATALINA_BASE=${SERVER_HOME}/domains/${SERVER_NAME}
+export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${CATALINA_HOME}/lib
+export CLASSPATH=${CLASSPATH}
 
-export HOST_NAME=`/bin/hostname`
-export NODE_NAME=${SERVER_NAME}
+export JAVA_HOME=/usr/lib/jvm/java-1.8.0
+export PATH=${JAVA_HOME}/bin:$PATH
+export LOG_HOME=/log/tomcat/${SERVER_NAME}
 
+# PORT OFFSET GROUP
+export HOSTNAME=`/bin/hostname`
+export JMX_BIND_ADDR=192.168.56.101
 export PORT_OFFSET=0
-
-export JBOSS_USER=edu
-
-##### Bind Address #####
-export BIND_ADDR=192.168.56.101
+</pre></code> 
 
 # 권한 변경 ----------------# 
 chown -R edu:edu /edu/jboss /log/jboss
