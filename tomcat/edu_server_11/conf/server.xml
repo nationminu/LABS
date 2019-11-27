@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<Server port="${http.shutdown.port}" shutdown="SHUTDOWN">
+<Server port="8005" shutdown="SHUTDOWN">
   <Listener className="org.apache.catalina.startup.VersionLoggerListener" />
   <!-- Security listener. Documentation at /docs/config/listeners.html
   <Listener className="org.apache.catalina.security.SecurityListener" />
@@ -26,8 +26,8 @@
      <Resource name="jdbc/eduDS" auth="Container"
                type="javax.sql.DataSource" 
                driverClassName="com.mysql.jdbc.Driver"
-               url="jdbc:mysql://192.168.56.101:3306/edu?useUnicode=true&amp;characterEncoding=utf8"
-               username="edu" password="edu"
+               url="jdbc:mysql://192.168.56.101:3306/tedu?useUnicode=true&amp;characterEncoding=utf8"
+               username="tedu" password="tomcatedu123!"
                maxTotal="10"
                maxIdle="10"
                minIdle="10"
