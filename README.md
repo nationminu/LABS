@@ -88,48 +88,33 @@ cp /home/share/tomcat-labs/tomcat/default/* /edu/apache/domains/edu_server_11/co
 chmod 600 /edu/apache/domains/edu_server_11/conf/*
 </pre></code> 
 
-# 관리 스크립트 수정 ----------------# 
-<code><pre>
-#!/usr/bin/env bash
-# env.sh - start a new shell with instance variables set
-
-DATE=`date +%Y%m%d%H%M%S`
-
-export SERVER_USER=edu
-export SERVER_NAME=edu_server_11
-
-## set base env
-export SERVER_HOME=/edu/tomcat
-export CATALINA_HOME=${SERVER_HOME}/engine/apache-tomcat-9.0.29
-export CATALINA_BASE=${SERVER_HOME}/domains/${SERVER_NAME}
-export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${CATALINA_HOME}/lib
-export CLASSPATH=${CLASSPATH}
-
-export JAVA_HOME=/usr/lib/jvm/java-1.8.0
-export PATH=${JAVA_HOME}/bin:$PATH
-export LOG_HOME=/log/tomcat/${SERVER_NAME}
-
-# PORT OFFSET GROUP
-export HOSTNAME=`/bin/hostname`
-export JMX_BIND_ADDR=192.168.56.101
-export PORT_OFFSET=0
+## 관리 스크립트 수정
+<code><pre> 
 </pre></code> 
 
-# 권한 변경 ----------------# 
-chown -R edu:edu /edu/jboss /log/jboss
-find /edu/jboss -type d -exec chmod 700 {} \;
-find /edu/jboss -type f -exec chmod 600 {} \;
-find /edu/jboss -type f -name "*.sh" -exec chmod 700 {} \;
+## 권한 변경 
+<code><pre> 
+chown -R edu:edu /edu/ /log/
+find /edu/tomcat -type d -exec chmod 700 {} \;
+find /edu/tomcat -type f -exec chmod 600 {} \;
+find /edu/tomcat -type f -name "*.sh" -exec chmod 700 {} \;
+</pre></code> 
 
-# 관리 스크립트 ----------------# 
-su # edu
-cd /edu/jboss/domains/edu_server_11/bin
-./start.sh
-./stop.sh
-./tail.sh
-./kill.sh 
+## Native Library 컴파일  
+<code><pre> 
+yum install –y gcc apr-util apr-devel openssl openssl-devel
 
-# Apache 컴파일 ----------------# 
+cd /tmp
+wget http://apache.tt.co.kr/tomcat/tomcat-connectors/native/1.2.23/source/tomcat-native-1.2.23-src.tar.gz
+tar -zxvf tomcat-native-1.2.23-src.tar.gz
+cd /tmp/tomcat-native-1.2.23-src/native
+./configure --prefix=/edu/tomcat/engine/apache-tomcat-9.0.29 --with-java-home=/usr/lib/jvm/java-1.8.0-openjdk
+make
+make install
+</pre></code> 
+
+## Apache 컴파일  
+<code><pre> 
 yum install -y gcc openssl openssl-devel pcre pcre-devel apr apr-devel apr-util apr-util-devel
 
 cd /tmp/
@@ -139,8 +124,10 @@ cd httpd-2.4.41
 ./configure --prefix=/edu/apache/httpd-2.4.41 --enable-mpms-shared=all --with-mpm=worker --enable-ssl --enable-rewrite
 make
 make install
+</pre></code> 
 
-# 연동 모듈 컴파일 ----------------# 
+## 연동 모듈 컴파일  
+<code><pre> 
 cd /tmp
 wget https://archive.apache.org/dist/tomcat/tomcat-connectors/jk/tomcat-connectors-1.2.46-src.tar.gz
 tar -zxvf tomcat-connectors-1.2.46-src.tar.gz
@@ -150,8 +137,11 @@ make
 cp apache-2.0/mod_jk.so /edu/apache/httpd-2.4.41/modules
 
 mkdir -p /log/apache/jk-log
+</pre></code> 
+
 
 # 연동 설정 -----------------
+<code><pre> 
 vi /edu/apache/httpd-2.4.41/conf/extra/jk.conf 
 
 LoadModule jk_module modules/mod_jk.so 
@@ -161,12 +151,15 @@ JkWorkersFile conf/extra/workers.properties
 JkLogFile "|/edu/apache/httpd-2.4.41/bin/rotatelogs /log/apache/jk-log/jk.log.%Y%m%d 86400 +540“ 
 JkLogLevel error
 JkLogStampFormat "[%Y %a %b %d %H:%M:%S]"
-JKRequestLogFormat " [%w:%R] [%V] [%U] [%s] [%T]“
+JKRequestLogFormat " [%w:%R] [%V] [%U] [%s] [%T]"
 
 JkMountFile conf/extra/uriworkermap.properties
-JkShmFile /log/apache/jk-log/mod-jk.shm  
+JkShmFile /log/apache/jk-log/mod-jk.shm 
+</pre></code> 
 
-# 연동 설정 -----------------
+
+## 연동 설정
+<code><pre> 
 vi /edu/apache/httpd-2.4.41/conf/extra/workers.properties
 
 worker.list=jkstatus,edu_wlb
@@ -188,9 +181,11 @@ worker.edu_wlb.sticky_session=true
 worker.edu_wlb.balance_workers=edu_server_11,edu_server_21
 
 worker.jkstatus.type=status
+</pre></code> 
 
 
-# 연동 설정 -----------------
+## 연동 설정
+<code><pre> 
 vi /edu/apache/httpd-2.4.41/conf/extra/uriworkermap.properties
 
 /*.jsp=edu_wlb
@@ -199,8 +194,12 @@ vi /edu/apache/httpd-2.4.41/conf/extra/uriworkermap.properties
 !/*.jpg=edu_wlb
 !/*.png=edu_wlb
 !/*.gif=edu_wlb
+</pre></code> 
 
-# vhost 설정
+## vhost 설정
+<code><pre> 
+vi /edu/apache/httpd-2.4.41/conf/extra/vhosts.conf
+
 <VirtualHost *:80>
     ServerName  edu.example.com
 
@@ -214,27 +213,55 @@ vi /edu/apache/httpd-2.4.41/conf/extra/uriworkermap.properties
     JkUnMount /*.png	edu_wlb
     JkUnMount /*.gif	edu_wlb
 </VirtualHost> 
+
 <Directory "/edu/webapp/example.war"> 
     Require all granted 
 </Directory>
+</pre></code> 
 
-# sample html -----------------
+## sample html
+<code><pre> 
 mkdir –p /edu/webapp/example.war
-echo "HELLO EDU JBOSS" >/edu/webapp/example.war/index.html
+echo "HELLO EDU TOMCAT" >/edu/webapp/example.war/index.html
+</pre></code> 
 
+## Apache 설정 파일 추가
+<code><pre> 
+vi /edu/apache/httpd-2.4.41/conf/httpd.conf
+
+Include conf/extra/jk.conf
+Include conf/extra/vhosts.conf
+</pre></code> 
+
+## Apache 실행
+<code><pre> 
 cd /edu/apache/httpd-2.4.41/bin
-./apachectl start
-./apachectl stop
+./apachectl start 
 ./apachectl restart
 
 tail -f /log/apache/jk-log/jk.log.20191129
+</pre></code> 
 
-# example 배포 -----------------
-mkdir -p /edu/webapp/example.war
-cp /home/share/LABS/session.war /edu/webapp/example.war
-cd /edu/webapp/example.war
-unzip session.war
-rm –f session.war
+# example.war 배포
+<code><pre> 
+rm -rf /edu/tomcat/domains/edu_server_11/webapps/ROOT 
+cd /edu/webapp/example.war 
+cp -r /home/share/tomcat-labs/webapp/example.war /edu/webapp/
+
+chown -R edu.edu /edu/webapp
+</pre></code> 
+
+## server.xml example.war 배포 
+<code><pre> 
+vi /edu/tomcat/domain/edu_server_11/conf/server.xml
+
+<Host name="localhost"  appBase="webapps"
+    unpackWARs="true" autoDeploy="true">
+<Context path="" docBase="/edu/webapp/example.war">
+</Context>
+...
+</Host>
+</pre></code> 
 
 
 ./jboss-cli.sh
