@@ -2,9 +2,11 @@
 
 ## 사용자 추가 
 <code>
+<pre>
 groupadd -g 1001 edu 
 useradd -u 1001 -g 1001 -d /edu edu
 passwd edu
+</pre>
 </code>
 
 ## ulimit 설정 
