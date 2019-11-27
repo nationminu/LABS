@@ -321,6 +321,8 @@ systemctl start mysqld
 
 # DB 생성 및 사용자 
 mysql -u root -p 
+password : Welcomemysql
+
 create database tedu;
 grant all on tedu.* to tedu identified by 'tomcatedu123!';
 grant all on tedu.* to tedu@127.0.0.1 identified by 'tomcatedu123!';
@@ -344,7 +346,7 @@ vi /edu/tomcat/domain/edu_server_11/conf/server.xml
  <Resource name="jdbc/eduDS" auth="Container"
                type="javax.sql.DataSource"
                driverClassName="com.mysql.jdbc.Driver"
-               url="jdbc:mysql://192.168.56.101:3306/edu?useUnicode=true&amp;characterEncoding=utf8&amp;serverTimezone=UTC"
+               url="jdbc:mysql://192.168.56.102:3306/edu?useUnicode=true&amp;characterEncoding=utf8&amp;serverTimezone=UTC"
                username=“tedu" password=“tomcatedu1234!"
                maxTotal="10"
                maxIdle="10"
