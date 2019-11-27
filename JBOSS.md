@@ -1,25 +1,22 @@
-# APACHE TOMCAT LABS
+# LABS
+<code><pre>
 
-## 사용자 추가 
-<code>
+# 사용자 추가 -----------------
 groupadd -g 1001 edu 
 useradd -u 1001 -g 1001 -d /edu edu
 passwd edu
-</code>
 
-## ulimit 설정 
+# ulimit 설정 -----------------
 vi /etc/security/limits.conf
 edu              soft     nproc           65536
 edu              hard     nproc           65536
 edu              soft     nofile          65536
 edu              hard     nofile          65536
 
-# hosts 설정 ----------------- 
-<code>
+# hosts 설정 -----------------
 vi /etc/hosts
 192.168.56.101 wasts1 edu.example.com poc.example.com
-192.168.56.102 wasts2 db.example.com 
-</code>
+192.168.56.102 wasts2 db.example.com
 
 # firewalld 비활성 -----------------
 systemctl stop firewalld
@@ -257,4 +254,6 @@ vi module.xml
 </driver>
 
 /subsystem=datasources/data-source=eduDS:test-connection-in-pool
+
+</code></pre>
 
