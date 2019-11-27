@@ -90,6 +90,29 @@ chmod 600 /edu/apache/domains/edu_server_11/conf/*
 
 ## 관리 스크립트 수정
 ``` 
+#!/usr/bin/env bash
+# env.sh - start a new shell with instance variables set
+
+DATE=`date +%Y%m%d%H%M%S`
+
+export SERVER_USER=edu
+export SERVER_NAME=edu_server_11
+
+## set base env
+export SERVER_HOME=/edu/tomcat
+export CATALINA_HOME=${SERVER_HOME}/engine/apache-tomcat-9.0.29
+export CATALINA_BASE=${SERVER_HOME}/domains/${SERVER_NAME}
+export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${CATALINA_HOME}/lib
+export CLASSPATH=${CLASSPATH}
+
+#export JAVA_HOME=/usr/lib/jvm/java-1.8.0
+#export PATH=${JAVA_HOME}/bin:$PATH
+export LOG_HOME=/log/tomcat/${SERVER_NAME}
+
+# PORT OFFSET GROUP
+export HOSTNAME=`/bin/hostname`
+export JMX_BIND_ADDR=192.168.56.101
+export PORT_OFFSET=0
 ``` 
 
 ## 권한 변경 
