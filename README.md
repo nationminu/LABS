@@ -252,7 +252,7 @@ chown -R edu.edu /edu/webapp
 </pre></code> 
 
 ## server.xml example.war 배포 
-<code><pre> 
+```
 vi /edu/tomcat/domain/edu_server_11/conf/server.xml
 
 <Host name="localhost"  appBase="webapps"
@@ -261,7 +261,7 @@ vi /edu/tomcat/domain/edu_server_11/conf/server.xml
 </Context>
 ...
 </Host>
-</pre></code> 
+```
 
 
 ./jboss-cli.sh
