@@ -263,62 +263,146 @@ vi /edu/tomcat/domain/edu_server_11/conf/server.xml
 </Host>
 ```
 
+## Tomcat User 설정
+```
+vi /edu/tomcat/domain/edu_server_11/conf/tomcat-users.xml
+<tomcat-users xmlns="http://tomcat.apache.org/xml"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://tomcat.apache.org/xml tomcat-users.xsd"
+              version="1.0">
 
-./jboss-cli.sh
-deploy --runtime-name=example.war --name=example.war --unmanaged /edu/webapp/example.war/
+  <role rolename="tomcat"/>
+  <role rolename="manager"/>
+  <role rolename="admin"/>
+  <role rolename="admin-gui"/>
+  <role rolename="admin-script"/>
+  <role rolename="manager-gui"/>
+  <role rolename="manager-script"/>
+  <role rolename="manager-jmx"/>
+  <role rolename="manager-status"/>
+  <role rolename="Jolokia"/>
 
-   <deployments>
-        <deployment name="example.war" runtime-name="example.war">
-            <fs-exploded path="/edu/webapp/example.war"/>
-        </deployment>
-    </deployments>
+  <user username="edu" password="edu" roles="admin,tomcat,manager,manager-gui,manager-status,manager-jmx,manager-script,admin-gui,admin-script,Jolokia"/>
 
+</tomcat-users>
+```
 
-
-# database 설치 -----------------
+## database 설치 
+```
+# 설치
 yum install mariadb mariadb-server
 systemctl start mariadb
 
-mysql -uroot -p edu < sample-edu-db.sql
+yum install mysql mysql-server
+systemctl start mysqld
 
-# 모듈 설정 -----------------
-mkdir -p /edu/jboss/engine/jboss-eap-7.2/modules/system/layers/base/mysql/main
-cp /home/share/LABS/mysql-connector-java-8.0.18.jar /edu/jboss/engine/jboss-eap-7.2/modules/system/layers/base/mysql/main
-cd /edu/jboss/engine/jboss-eap-7.2/modules/system/layers/base/mysql/main
+# DB 생성 및 사용자 
+mysql -u root -p 
+create database tedu;
+grant all on tedu.* to tedu identified by 'tomcatedu123!';
+grant all on tedu.* to tedu@127.0.0.1 identified by 'tomcatedu123!';
+grant all on tedu.* to tedu@localhost identified by 'tomcatedu123!';
 
-vi module.xml
+# SAMPLE Data Import 
+mysql -u root -p tedu < /home/share/tomcat-labs/sample-edu-db.sql
+```
 
-<module name="“"mysql" xmlns="urn:jboss:module:1.5"> 
+## JDBC 드라이버 추가
+```
+cp /home/share/tomcat-labs/tomcat/mysql-connector-java-8.0.18.jar /edu/tomcat/engine/apache-tomcat-9.0.29/lib/
+```
 
-    <resources>
-        <resource-root path="mysql-connector-java-8.0.18.jar"/>
-    </resources>
-    <dependencies>
-        <module name="javax.api"/>
-        <module name="javax.transaction.api"/> 
-    </dependencies>
-</module>
+## Datasource 설정
+```
+vi /edu/tomcat/domain/edu_server_11/conf/server.xml
+
+<GlobalNamingResources>
+...
+ <Resource name="jdbc/eduDS" auth="Container"
+               type="javax.sql.DataSource"
+               driverClassName="com.mysql.jdbc.Driver"
+               url="jdbc:mysql://192.168.56.101:3306/edu?useUnicode=true&amp;characterEncoding=utf8&amp;serverTimezone=UTC"
+               username=“tedu" password=“tomcatedu1234!"
+               maxTotal="10"
+               maxIdle="10"
+               minIdle="10"
+               maxWaitMillis="30000"
+               validationQuery="SELECT 1"
+               testWhileIdle="true"
+               timeBetweenEvictionRunsMillis="10000"
+     /> 
+</GlobalNamingResources>
+``` 
+
+## 클러스터링 설정
+```
+    <Engine name="Catalina" defaultHost="localhost" jvmRoute="${server.name}">
+
+        <Cluster className="org.apache.catalina.ha.tcp.SimpleTcpCluster"
+                 channelSendOptions="8">
+
+          <Manager className="org.apache.catalina.ha.session.DeltaManager"
+                   expireSessionsOnShutdown="false"
+                   notifyListenersOnReplication="true"/>
+
+          <Channel className="org.apache.catalina.tribes.group.GroupChannel">
+            <Membership className="org.apache.catalina.tribes.membership.McastService"
+                        bind="192.168.56.101"
+                        address="231.0.6.1"
+                        port="45564"
+                        frequency="500"
+                        dropTime="3000"/>
+            <Receiver className="org.apache.catalina.tribes.transport.nio.NioReceiver"
+                      address="192.168.56.101"
+                      port="4000"
+                      autoBind="100"
+                      selectorTimeout="5000"
+                      maxThreads="6"/>
 
 
-# DB 설정 ----------------# 
-<datasource jndi-name="java:/jdbc/eduDS" pool-name="eduDS">
-<connection-url>jdbc:mysql://192.168.56.102:3306/edu?characterEncoding=UTF-8&amp;serverTimezone=UTC</connection-url>
-<driver>mysql</driver>
-<security>
-  <user-name>edu</user-name>
-  <password>edu</password>
-</security>
-<validation>
-  <valid-connection-checker class-name="org.jboss.jca.adapters.jdbc.extensions.mysql.MySQLValidConnectionChecker"/>
-  <validate-on-match>true</validate-on-match>
-  <background-validation>false</background-validation>
-  <exception-sorter class-name="org.jboss.jca.adapters.jdbc.extensions.mysql.MySQLExceptionSorter"/>
-</validation>
-</datasource>
+            <Sender className="org.apache.catalina.tribes.transport.ReplicationTransmitter">
+              <Transport className="org.apache.catalina.tribes.transport.nio.PooledParallelSender"/>
+            </Sender>
+            <Interceptor className="org.apache.catalina.tribes.group.interceptors.TcpFailureDetector"/>
+            <Interceptor className="org.apache.catalina.tribes.group.interceptors.MessageDispatchInterceptor"/>
+            <Interceptor className="org.apache.catalina.tribes.group.interceptors.ThroughputInterceptor"/>
+          </Channel>
 
-<driver name="mysql" module="mysql">
-  <driver-class>com.mysql.jdbc.Driver</driver-class>
-</driver>
+          <Valve className="org.apache.catalina.ha.tcp.ReplicationValve"
+                 filter=""/>
+          <Valve className="org.apache.catalina.ha.session.JvmRouteBinderValve"/>
 
-/subsystem=datasources/data-source=eduDS:test-connection-in-pool
+          <Deployer className="org.apache.catalina.ha.deploy.FarmWarDeployer"
+                    tempDir="/tmp/war-temp/"
+                    deployDir="/tmp/war-deploy/"
+                    watchDir="/tmp/war-listen/"
+                    watchEnabled="false"/>
+
+          <ClusterListener className="org.apache.catalina.ha.session.ClusterSessionListener"/>
+        </Cluster>        
+```
+
+## 클러스터 어플리케이션 설정
+```
+/edu/webapp/example.war/WEB-INF/web.xml
+
+<web-app>
+
+<distributable />
+</web-app>
+```
+
+## 모니터링
+```
+http://192.168.56.101:8080/manager/jmxproxy?qry=Catalina:type=Executor,name=tomcatThreadPool
+http://192.168.56.101:8080/manager/jmxproxy?qry=Catalina:type=DataSource,class=javax.sql.DataSource,name=%22jdbc/eduDS%22
+
+./jmxsh –h localhost –p 9999 –U control –p
+
+http://192.168.56.101:8080/jolokia/read/Catalina:type=Executor,name=tomcatThreadPool/maxThreads,activeCount,poolSize,largestPoolSize?ignoreErrors=true
+http://192.168.56.101:8080/jolokia/read/Catalina:type=DataSource,class=javax.sql.DataSource,name="jdbc!/eudDS"/maxTotal,numActive,numIdle?ignoreErros=true
+```
+
+
+
 
