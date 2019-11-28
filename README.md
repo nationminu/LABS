@@ -276,7 +276,7 @@ chown -R edu.edu /edu/webapp
 
 ## server.xml example.war 배포 
 ```
-vi /edu/tomcat/domain/edu_server_11/conf/server.xml
+vi /edu/tomcat/domains/edu_server_11/conf/server.xml
 
 <Host name="localhost"  appBase="webapps"
     unpackWARs="true" autoDeploy="true">
@@ -288,7 +288,8 @@ vi /edu/tomcat/domain/edu_server_11/conf/server.xml
 
 ## Tomcat User 설정
 ```
-vi /edu/tomcat/domain/edu_server_11/conf/tomcat-users.xml
+vi /edu/tomcat/domains/edu_server_11/conf/tomcat-users.xml
+
 <tomcat-users xmlns="http://tomcat.apache.org/xml"
               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
               xsi:schemaLocation="http://tomcat.apache.org/xml tomcat-users.xsd"
@@ -339,7 +340,7 @@ cp /home/share/tomcat-labs/tomcat/mysql-connector-java-8.0.18.jar /edu/tomcat/en
 
 ## Datasource 설정
 ```
-vi /edu/tomcat/domain/edu_server_11/conf/server.xml
+vi /edu/tomcat/domains/edu_server_11/conf/server.xml
 
 <GlobalNamingResources>
 ...
