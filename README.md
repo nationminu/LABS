@@ -81,11 +81,11 @@ chown -R edu.edu /log/tomcat
 
 ## 멀티인스턴스 스크립트/예제 설정 복사
 ```
-cp -r /home/share/tomcat-labs/tomcat/edu_server_11/bin /edu/apache/domains/edu_server_11  
-cp -r /home/share/tomcat-labs/tomcat/edu_server_11/webapps /edu/apache/domains/edu_server_11/
-cp /home/share/tomcat-labs/tomcat/default/* /edu/apache/domains/edu_server_11/conf/
+cp -r /home/share/tomcat-labs/tomcat/edu_server_11/bin /edu/tomcat/domains/edu_server_11  
+cp -r /home/share/tomcat-labs/tomcat/edu_server_11/webapps /edu/tomcat/domains/edu_server_11/
+cp /home/share/tomcat-labs/tomcat/default/* /edu/tomcat/domains/edu_server_11/conf/
 
-chmod 600 /edu/apache/domains/edu_server_11/conf/*
+chmod 600 /edu/tomcat/domains/edu_server_11/conf/*
 ``` 
 
 ## 관리 스크립트 수정
